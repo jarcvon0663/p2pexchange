@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Exchange - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ===== Mis Anuncios ===== */
+        .view-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .view-tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border, #2a2a2a);
+            background: transparent;
+            color: var(--text-secondary, #aaa);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .view-tab.active {
+            background: var(--primary-green, #10b981);
+            color: #fff;
+            border-color: var(--primary-green, #10b981);
+        }
+        .my-ads-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+        .my-ad-card {
+            background: var(--card-bg, #1a1a1a);
+            border: 1px solid var(--border, #2a2a2a);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .my-ad-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .my-ad-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary, #aaa);
+            margin-bottom: 16px;
+        }
+        .my-ad-card-body strong {
+            color: var(--text-primary, #fff);
+        }
+        .my-ad-card-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .btn-delete {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-delete:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+        .my-ads-empty {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-secondary, #aaa);
+        }
+        .my-ads-empty h3 {
+            margin-top: 16px;
+            color: var(--text-primary, #fff);
+        }
+    </style>
+</head>
+<body class="dashboard-page">
+    <!-- Header -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo-icon-small">
+                    <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M25 5L45 15V35L25 45L5 35V15L25 5Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <circle cx="25" cy="25" r="8" fill="currentColor"/>
+                    </svg>
+                </div>
+                <span class="logo-text">P2P Exchange</span>
+            </div>
+
+            <div class="header-actions">
+                <div class="price-ticker">
+                    <span class="ticker-label">USD/COP</span>
+                    <span id="current-price" class="ticker-price">Cargando...</span>
+                </div>
+                <button id="createAdBtn" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 2V14M2 8H14" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Crear Anuncio
+                </button>
+                <button id="logoutBtn" class="btn btn-secondary">Salir</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+
+            <!-- View Tabs: Mercado / Mis Anuncios -->
+            <div class="view-tabs">
+                <button class="view-tab active" id="tabMarket">🌐 Mercado</button>
+                <button class="view-tab" id="tabMyAds">📋 Mis Anuncios</button>
+            </div>
+
+            <!-- ===== VISTA: MERCADO ===== -->
+            <div id="viewMarket">
+                <div class="filter-section">
+                    <h1>Anuncios Disponibles</h1>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="buy">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 2V18M10 2L6 6M10 2L14 6" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            Quiero Comprar USDT
+                        </button>
+                        <button class="filter-tab" data-filter="sell">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 18V2M10 18L6 14M10 18L14 14" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            Quiero Vender USDT
+                        </button>
+                    </div>
+                </div>
+
+                <div id="adsContainer" class="ads-grid"></div>
+
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <div class="empty-icon">
+                        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                            <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="2"/>
+                            <path d="M32 20V44M20 32H44" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>No hay anuncios disponibles</h3>
+                    <p>Sé el primero en crear un anuncio de intercambio</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('createAdBtn').click()">
+                        Crear Anuncio
+                    </button>
+                </div>
+            </div>
+
+            <!-- ===== VISTA: MIS ANUNCIOS ===== -->
+            <div id="viewMyAds" style="display:none;">
+                <div class="filter-section">
+                    <h1>Mis Anuncios</h1>
+                </div>
+
+                <div id="myAdsContainer" class="my-ads-grid"></div>
+
+                <div id="myAdsEmpty" class="my-ads-empty" style="display:none;">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                        <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="2"/>
+                        <path d="M32 20V44M20 32H44" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    <h3>Aún no tienes anuncios</h3>
+                    <p>Crea tu primer anuncio para empezar a intercambiar</p>
+                    <button class="btn btn-primary" style="margin-top:12px" onclick="document.getElementById('createAdBtn').click()">
+                        Crear Anuncio
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Modal: Create Ad -->
+    <div id="createAdModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Crear Nuevo Anuncio</h2>
+                <button class="modal-close" id="closeModalBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="createAdForm">
+                <div class="form-group">
+                    <label>Tipo de anuncio</label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="ad-type" value="sell" checked>
+                            <span class="radio-label">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M10 2V18M10 18L6 14M10 18L14 14" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Vender USDT
+                            </span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" name="ad-type" value="buy">
+                            <span class="radio-label">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M10 18V2M10 2L6 6M10 2L14 6" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                Comprar USDT
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ad-amount">Cantidad USDT</label>
+                        <input type="number" id="ad-amount" min="1" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="ad-margin">Margen de precio (%)</label>
+                        <input type="number" id="ad-margin" min="-5" max="5" step="0.1" value="0" required>
+                        <small class="form-hint">Entre -5% y +5%</small>
+                    </div>
+                </div>
+
+                <div class="price-preview" id="pricePreview">
+                    <div class="price-item">
+                        <span>Precio base:</span>
+                        <strong id="basePrice">$0 COP</strong>
+                    </div>
+                    <div class="price-item">
+                        <span>Tu precio:</span>
+                        <strong id="finalPrice" class="highlight">$0 COP</strong>
+                    </div>
+                    <div class="price-item">
+                        <span>Total:</span>
+                        <strong id="totalAmount" class="highlight">$0 COP</strong>
+                    </div>
+                </div>
+
+                <div class="form-group" id="paymentMethodGroup">
+                    <label for="ad-payment">Método de pago</label>
+                    <select id="ad-payment" required>
+                        <option value="">Selecciona una opción</option>
+                        <option value="nequi">Nequi</option>
+                        <option value="daviplata">Daviplata</option>
+                        <option value="bancolombia">Bancolombia</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="accountNumberGroup">
+                    <label for="ad-account">Número de cuenta</label>
+                    <input type="text" id="ad-account" placeholder="Ej: 300 123 4567">
+                </div>
+
+                <div class="form-group" id="walletGroup" style="display: none;">
+                    <label for="ad-wallet">Dirección Wallet Binance</label>
+                    <input type="text" id="ad-wallet" placeholder="0x...">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelAdBtn">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Publicar Anuncio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

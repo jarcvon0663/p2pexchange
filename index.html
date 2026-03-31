@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Exchange - Ingreso</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-visual">
+            <div class="visual-content">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M25 5L45 15V35L25 45L5 35V15L25 5Z" stroke="currentColor" stroke-width="2" fill="none"/>
+                            <circle cx="25" cy="25" r="8" fill="currentColor"/>
+                            <path d="M25 17V33M17 25H33" stroke="white" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h1>P2P Exchange</h1>
+                </div>
+                <p class="tagline">Intercambio seguro de COP a USDT entre personas de confianza</p>
+                <div class="features">
+                    <div class="feature">
+                        <span class="feature-icon">⚡</span>
+                        <span>Transacciones rápidas</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">🔒</span>
+                        <span>Círculo de confianza</span>
+                    </div>
+                    <div class="feature">
+                        <span class="feature-icon">💱</span>
+                        <span>Precio en tiempo real</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-forms">
+            <!-- Login Form -->
+            <div id="loginForm" class="form-panel active">
+                <h2>Iniciar Sesión</h2>
+                <p class="form-subtitle">Accede a tu cuenta para ver anuncios</p>
+                
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-username">Usuario</label>
+                        <input type="text" id="login-username" required autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="login-password">Contraseña</label>
+                        <input type="password" id="login-password" required autocomplete="current-password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span>Ingresar</span>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                </form>
+
+                <p class="form-switch">
+                    ¿No tienes cuenta? 
+                    <a href="#" id="showRegister">Regístrate aquí</a>
+                </p>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="form-panel">
+                <h2>Crear Cuenta</h2>
+                <p class="form-subtitle">Únete a la comunidad de intercambio</p>
+                
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="reg-username">Usuario</label>
+                        <input type="text" id="reg-username" required autocomplete="username">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-name">Nombre completo</label>
+                        <input type="text" id="reg-name" required autocomplete="name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-whatsapp">WhatsApp (con código de país)</label>
+                        <input type="tel" id="reg-whatsapp" placeholder="+57 300 123 4567" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="reg-password">Contraseña</label>
+                        <input type="password" id="reg-password" required autocomplete="new-password">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reg-binance">Dirección Wallet Binance (opcional)</label>
+                        <input type="text" id="reg-binance" placeholder="0x...">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <span>Crear Cuenta</span>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                </form>
+
+                <p class="form-switch">
+                    ¿Ya tienes cuenta? 
+                    <a href="#" id="showLogin">Inicia sesión</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="auth.js"></script>
+</body>
+</html>
