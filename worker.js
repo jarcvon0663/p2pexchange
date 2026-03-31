@@ -4,7 +4,7 @@
 // ==================== CORS Headers ====================
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
@@ -43,7 +43,6 @@ async function verifyJWT(token) {
     }
 }
 
-// Convierte un ad de snake_case (D1) a camelCase (frontend)
 function formatAd(ad) {
     return {
         id: ad.id,
@@ -61,6 +60,14 @@ function formatAd(ad) {
     };
 }
 
+function getValue(obj, snakeKey, camelKey, fallback = '') {
+    return obj?.[snakeKey] ?? obj?.[camelKey] ?? fallback;
+}
+
+// Cache simple para el precio
+let cachedUsdCopPrice = 0;
+let lastPriceFetchAt = 0;
+
 // ==================== Main Handler ====================
 export default {
     async fetch(request, env) {
@@ -72,12 +79,56 @@ export default {
             return new Response(null, { headers: corsHeaders });
         }
 
+        // ==================== Public Routes ====================
+
+        // GET /price
+        if (path === '/price' && method === 'GET') {
+            try {
+                const now = Date.now();
+
+                if (cachedUsdCopPrice > 0 && (now - lastPriceFetchAt) < 60000) {
+                    return jsonResponse({ price: cachedUsdCopPrice });
+                }
+
+                const res = await fetch(
+                    'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cop',
+                    {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    }
+                );
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                const price = Number(data?.tether?.cop || 0);
+
+                cachedUsdCopPrice = price;
+                lastPriceFetchAt = now;
+
+                return jsonResponse({ price });
+            } catch (error) {
+                return jsonResponse({
+                    price: cachedUsdCopPrice || 0,
+                    error: 'Error obteniendo precio'
+                }, 200);
+            }
+        }
+
         // ==================== Auth Routes ====================
 
         // POST /auth/register
         if (path === '/auth/register' && method === 'POST') {
             try {
-                const { username, name, whatsapp, password, binanceWallet } = await request.json();
+                const body = await request.json();
+                const username = getValue(body, 'username', 'username');
+                const name = getValue(body, 'name', 'name');
+                const whatsapp = getValue(body, 'whatsapp', 'whatsapp');
+                const password = getValue(body, 'password', 'password');
+                const binanceWallet = getValue(body, 'binance_wallet', 'binanceWallet', '');
 
                 if (!username || !name || !whatsapp || !password) {
                     return jsonResponse({ error: 'Campos requeridos faltantes' }, 400);
@@ -100,7 +151,6 @@ export default {
                 ).bind(id, username, name, whatsapp, hashedPassword, binanceWallet || '', new Date().toISOString()).run();
 
                 return jsonResponse({ success: true, userId: id }, 201);
-
             } catch (error) {
                 return jsonResponse({ error: 'Error al crear usuario: ' + error.message }, 500);
             }
@@ -140,7 +190,6 @@ export default {
                         binanceWallet: user.binance_wallet
                     }
                 });
-
             } catch (error) {
                 return jsonResponse({ error: 'Error al iniciar sesion: ' + error.message }, 500);
             }
@@ -169,7 +218,7 @@ export default {
 
         // ==================== Ads Routes ====================
 
-        // GET /ads/my - anuncios del usuario actual
+        // GET /ads/my
         if (path === '/ads/my' && method === 'GET') {
             try {
                 const { results } = await env.DB.prepare(
@@ -177,7 +226,6 @@ export default {
                 ).bind(currentUser.id).all();
 
                 return jsonResponse({ ads: (results || []).map(formatAd) });
-
             } catch (error) {
                 return jsonResponse({ error: 'Error al obtener tus anuncios: ' + error.message }, 500);
             }
@@ -191,7 +239,6 @@ export default {
                 ).all();
 
                 return jsonResponse({ ads: (results || []).map(formatAd) });
-
             } catch (error) {
                 return jsonResponse({ error: 'Error al obtener anuncios: ' + error.message }, 500);
             }
@@ -200,9 +247,16 @@ export default {
         // POST /ads
         if (path === '/ads' && method === 'POST') {
             try {
-                const { type, amount, margin, paymentMethod, accountNumber, binanceWallet } = await request.json();
+                const body = await request.json();
 
-                if (!type || !amount || margin === undefined || !paymentMethod) {
+                const type = getValue(body, 'type', 'type');
+                const amount = Number(getValue(body, 'amount', 'amount'));
+                const margin = Number(getValue(body, 'margin', 'margin'));
+                const paymentMethod = getValue(body, 'payment_method', 'paymentMethod');
+                const accountNumber = getValue(body, 'account_number', 'accountNumber', '');
+                const binanceWallet = getValue(body, 'binance_wallet', 'binanceWallet', '');
+
+                if (!type || !amount || Number.isNaN(margin) || !paymentMethod) {
                     return jsonResponse({ error: 'Campos requeridos faltantes' }, 400);
                 }
 
@@ -210,8 +264,12 @@ export default {
                     return jsonResponse({ error: 'El margen debe estar entre -5% y +5%' }, 400);
                 }
 
-                if (type === 'sell' && !accountNumber) {
-                    return jsonResponse({ error: 'Numero de cuenta requerido para vender' }, 400);
+                if (!accountNumber) {
+                    return jsonResponse({ error: 'Numero de cuenta requerido' }, 400);
+                }
+
+                if (type === 'buy' && !binanceWallet && !currentUser.binance_wallet) {
+                    return jsonResponse({ error: 'Wallet Binance requerida para comprar' }, 400);
                 }
 
                 const id = crypto.randomUUID();
@@ -225,8 +283,8 @@ export default {
                     currentUser.name,
                     currentUser.whatsapp,
                     type,
-                    parseFloat(amount),
-                    parseFloat(margin),
+                    amount,
+                    margin,
                     paymentMethod,
                     accountNumber || '',
                     binanceWallet || currentUser.binance_wallet || '',
@@ -235,9 +293,80 @@ export default {
                 ).run();
 
                 return jsonResponse({ success: true, adId: id }, 201);
-
             } catch (error) {
                 return jsonResponse({ error: 'Error al crear anuncio: ' + error.message }, 500);
+            }
+        }
+
+        // PATCH /ads/:id
+        if (path.startsWith('/ads/') && (method === 'PATCH' || method === 'PUT')) {
+            try {
+                const adId = path.split('/')[2];
+
+                if (!adId || adId === 'my') {
+                    return jsonResponse({ error: 'Ruta no válida' }, 400);
+                }
+
+                const ad = await env.DB.prepare(
+                    'SELECT * FROM ads WHERE id = ?'
+                ).bind(adId).first();
+
+                if (!ad) {
+                    return jsonResponse({ error: 'Anuncio no encontrado' }, 404);
+                }
+
+                if (ad.user_id !== currentUser.id) {
+                    return jsonResponse({ error: 'No autorizado' }, 403);
+                }
+
+                const body = await request.json();
+
+                const type = getValue(body, 'type', 'type', ad.type);
+                const amount = body.amount !== undefined ? Number(getValue(body, 'amount', 'amount')) : Number(ad.amount);
+                const margin = body.margin !== undefined ? Number(getValue(body, 'margin', 'margin')) : Number(ad.margin);
+                const paymentMethod = getValue(body, 'payment_method', 'paymentMethod', ad.payment_method);
+                const accountNumber = getValue(body, 'account_number', 'accountNumber', ad.account_number);
+                const binanceWallet = getValue(body, 'binance_wallet', 'binanceWallet', ad.binance_wallet);
+                const active = body.active !== undefined ? Number(body.active) : Number(ad.active);
+
+                if (Number.isNaN(amount) || Number.isNaN(margin)) {
+                    return jsonResponse({ error: 'Monto o margen inválido' }, 400);
+                }
+
+                if (margin < -5 || margin > 5) {
+                    return jsonResponse({ error: 'El margen debe estar entre -5% y +5%' }, 400);
+                }
+
+                if (!paymentMethod) {
+                    return jsonResponse({ error: 'Método de pago requerido' }, 400);
+                }
+
+                if (!accountNumber) {
+                    return jsonResponse({ error: 'Número de cuenta requerido' }, 400);
+                }
+
+                if (type === 'buy' && !binanceWallet && !currentUser.binance_wallet) {
+                    return jsonResponse({ error: 'Wallet Binance requerida para comprar' }, 400);
+                }
+
+                await env.DB.prepare(
+                    `UPDATE ads
+                     SET type = ?, amount = ?, margin = ?, payment_method = ?, account_number = ?, binance_wallet = ?, active = ?
+                     WHERE id = ?`
+                ).bind(
+                    type,
+                    amount,
+                    margin,
+                    paymentMethod,
+                    accountNumber,
+                    binanceWallet || currentUser.binance_wallet || '',
+                    active ? 1 : 0,
+                    adId
+                ).run();
+
+                return jsonResponse({ success: true });
+            } catch (error) {
+                return jsonResponse({ error: 'Error al editar anuncio: ' + error.message }, 500);
             }
         }
 
@@ -245,6 +374,10 @@ export default {
         if (path.startsWith('/ads/') && method === 'DELETE') {
             try {
                 const adId = path.split('/')[2];
+
+                if (!adId || adId === 'my') {
+                    return jsonResponse({ error: 'Ruta no válida' }, 400);
+                }
 
                 const ad = await env.DB.prepare(
                     'SELECT * FROM ads WHERE id = ?'
@@ -259,11 +392,10 @@ export default {
                 }
 
                 await env.DB.prepare(
-                    'DELETE FROM ads WHERE id = ?'
+                    'UPDATE ads SET active = 0 WHERE id = ?'
                 ).bind(adId).run();
 
                 return jsonResponse({ success: true });
-
             } catch (error) {
                 return jsonResponse({ error: 'Error al eliminar anuncio: ' + error.message }, 500);
             }
