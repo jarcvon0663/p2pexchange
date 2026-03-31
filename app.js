@@ -78,23 +78,31 @@ function escapeHtml(value) {
 }
 
 // ==================== Price Fetching ====================
-// Fuente más estable para entorno local. USD/COP sirve como base para el precio referencial.
 async function fetchCurrentPrice() {
     try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cop');
+        const response = await fetch(`${API_URL}/price`);
         const data = await response.json();
-        currentPrice = data.tether.cop;
 
-        document.getElementById('current-price').textContent = `$${formatNumber(currentPrice.toFixed(0))}`;
+        if (!data.price) {
+            throw new Error('Precio inválido');
+        }
+
+        currentPrice = data.price;
+
+        document.getElementById('current-price').textContent =
+            `$${formatNumber(currentPrice.toFixed(0))}`;
+
         updatePricePreview();
+
     } catch (error) {
         console.error('Error fetching price:', error);
+
         document.getElementById('current-price').textContent = 'Error';
     }
 }
 
 fetchCurrentPrice();
-setInterval(fetchCurrentPrice, 30000);
+setInterval(fetchCurrentPrice, 60000); // súbelo a 60s mínimo
 
 // ==================== Load Ads ====================
 async function loadAds() {
