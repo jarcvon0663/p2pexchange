@@ -79,30 +79,31 @@ function escapeHtml(value) {
 
 // ==================== Price Fetching ====================
 async function fetchCurrentPrice() {
+    const priceEl = document.getElementById('current-price');
+    if (!priceEl) return;
+
     try {
         const response = await fetch(`${API_URL}/price`);
         const data = await response.json();
 
-        if (!data.price) {
+        const price = Number(data?.price || 0);
+
+        if (!price) {
             throw new Error('Precio inválido');
         }
 
-        currentPrice = data.price;
-
-        document.getElementById('current-price').textContent =
-            `$${formatNumber(currentPrice.toFixed(0))}`;
+        currentPrice = price;
+        priceEl.textContent = `$${formatNumber(currentPrice.toFixed(0))}`;
 
         updatePricePreview();
-
     } catch (error) {
         console.error('Error fetching price:', error);
-
-        document.getElementById('current-price').textContent = 'Error';
+        priceEl.textContent = 'No disponible';
     }
 }
 
 fetchCurrentPrice();
-setInterval(fetchCurrentPrice, 60000); // súbelo a 60s mínimo
+setInterval(fetchCurrentPrice, 60000);
 
 // ==================== Load Ads ====================
 async function loadAds() {

@@ -91,7 +91,7 @@ export default {
                 }
 
                 const res = await fetch(
-                    'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=cop',
+                    'https://api.exchangerate.host/latest?base=USD&symbols=COP',
                     {
                         headers: {
                             'Accept': 'application/json'
@@ -104,7 +104,7 @@ export default {
                 }
 
                 const data = await res.json();
-                const price = Number(data?.tether?.cop || 0);
+                const price = Number(data?.rates?.COP || 0);
 
                 cachedUsdCopPrice = price;
                 lastPriceFetchAt = now;
